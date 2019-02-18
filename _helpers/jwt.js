@@ -1,13 +1,13 @@
 const expressJwt = require('express-jwt');
-const config = require('config.json');
+const fs = require("fs");
 
 module.exports = jwt;
 
 function jwt() {
-    const { secret } = config;
-    return expressJwt({ secret }).unless({
-        path: [
-            '/user/login'
-        ]
-    });
+  var secret = fs.readFileSync("./public.key", "utf8");
+  return expressJwt({ secret }).unless({
+    path: [
+      '/api/v1/user/login'
+    ]
+  })
 }

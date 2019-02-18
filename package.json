@@ -4,12 +4,19 @@
   "description": "Node server for simple kanban app",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.404.0",
-    "express": "^4.16.4"
+    "bcrypt": "^3.0.4",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "express-jwt": "^5.3.1",
+    "jsonwebtoken": "^8.4.0",
+    "nodemon": "^1.18.10",
+    "uuid": "^3.3.2"
   }
 }
