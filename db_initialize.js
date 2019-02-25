@@ -40,8 +40,31 @@ function createUserTable() {
   return promise;
 }
 
+function createGoalTable() {
+  var params = {
+    TableName: tablePrefix + 'goal',
+    KeySchema: [
+      { AttributeName: 'userid', KeyType: 'HASH' },
+      { AttributeName: 'goalid', KeyType: 'RANGE' }
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'userid', AttributeType: 'S' },
+      { AttributeName: 'goalid', AttributeType: 'S' }      
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 1,
+      WriteCapacityUnits: 1
+    }
+  };
+  var promise = dynamodb.createTable(params).promise();
+  return promise;
+}
+
 function done() {
   console.log('Table creation completed');
 }
 
-createUserTable().then(done); 
+createUserTable()
+.then(createGoalTable)
+.then(done); 
+

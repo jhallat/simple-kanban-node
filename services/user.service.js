@@ -6,7 +6,8 @@ const fs = require("fs");
 
 module.exports = {
   authenticate,
-  addUser
+  addUser,
+  findUserByBearerToken
 };
 
 const saltRounds = 10;
@@ -15,14 +16,14 @@ aws.config.update({
 });
 var dynamodb = new aws.DynamoDB();
 var privateKey = fs.readFileSync("./private.key", "utf8");
+var publicKey = fs.readFileSync("./public.key", "utf8");
 
 async function authenticate(username, password, callback) {
-  findUserByUsername(username, (err, data) => {
-    if (err) {
-      callback({ code: 500, message: err });
-    } else {
+
+  findUserByUsername(username).then(
+    data => {
       if (data.Items && data.Items.length === 1) {
-        var hash = data.Items[0].password.S
+        var hash = data.Items[0].password.S;
         var isValid = bcrypt.compareSync(password, hash);
         if (isValid) {
           var signOptions = {
@@ -38,23 +39,15 @@ async function authenticate(username, password, callback) {
       } else {
         callback({ code: 401, message: "invalid credentials" });
       }
+    },
+    err => {
+      callback({ code: 500, message: err });
     }
-  });
+  )
 
-  const user = users.find(
-    u => u.username === username && u.password === password
-  );
-  if (user) {
-    const token = jwt.sign({ sub: user.id }, "replace");
-    const { password, ...userWithoutPassword } = user;
-    return {
-      ...userWithoutPassword,
-      token
-    };
-  }
 }
 
-function findUserByUsername(username, callback) {
+function findUserByUsername(username) {
   var params = {
     TableName: "agile.user",
     IndexName: "agile.usernameindex",
@@ -64,7 +57,45 @@ function findUserByUsername(username, callback) {
     }
   };
 
-  return dynamodb.query(params, callback);
+  return dynamodb.query(params).promise();
+}
+
+function getBearerTokenFromHeader(headers) {
+  return new Promise((resolve, reject) => {
+    var tokenArray = headers.authorization.split(" ");
+    if (tokenArray.length !== 1) {
+      reject(new Error("Token not found"));
+    } else {
+      jwt.verify(tokenArray[1], publicKey, (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data.sub);
+        }
+      })
+    }
+  })
+}
+
+
+function findUserByBearerToken(headers) {
+  
+  return new Promise((resolve, reject) => {
+    getBearerTokenFromHeader(headers).then(
+      (data) => {
+        findUserByUsername(data.sub, (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(null, data.userid);
+          }
+        })
+      },
+      (error) => {
+        reject(error);
+      }
+    )
+  })
 }
 
 async function addUser(user, callback) {
