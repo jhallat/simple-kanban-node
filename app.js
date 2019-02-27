@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const authenticationRouter = require('./routes/authentication.router')();
+const statusRouter = require('./routes/status.router')();
 const jwt = require('./_helpers/jwt');
 const jwtToken = require("jsonwebtoken");
 const fs = require("fs");
@@ -17,7 +18,8 @@ app.use(bodyParser.json());
 app.use(cors(corsOptions));
 app.use(jwt());
 app.use("/api/v1", authenticationRouter);
-app.get("/api/v1/hello", (req, res) => {
+app.use("/api/v1", statusRouter);
+/* app.get("/api/v1/hello", (req, res) => {
   var tokenArray = req.headers.authorization.split(' ');
   var publicKey = fs.readFileSync("./public.key", "utf8");
  jwtToken.verify(tokenArray[1], publicKey, (err, data) => {
@@ -28,7 +30,7 @@ app.get("/api/v1/hello", (req, res) => {
   }
  })
  
-})
+}) */
 
 app.listen(port, () => {
   console.log(`Running on port ${port}`);
