@@ -61,6 +61,26 @@ function createGoalTable() {
   return promise;
 }
 
+function createNoteTable() {
+  var params = {
+    TableName: tablePrefix + 'note',
+    KeySchema: [
+      { AttributeName: 'userid', KeyType: 'HASH' },
+      { AttributeName: 'noteid', KeyType: 'RANGE' }
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'userid', AttributeType: 'S' },
+      { AttributeName: 'noteid', AttributeType: 'S' }      
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 1,
+      WriteCapacityUnits: 1
+    }
+  };
+  var promise = dynamodb.createTable(params).promise();
+  return promise;
+}
+
 function createStatusTable() {
   var params = {
     TableName: tablePrefix + 'status',
@@ -79,6 +99,8 @@ function createStatusTable() {
   };
   return dynamodb.createTable(params).promise();
 }
+
+
 
 function populateStatusTable() {
   var params = {
@@ -237,16 +259,13 @@ function done() {
   console.log('Table creation completed');
 }
 
-createUserTable()
-.then(createGoalTable())
-.then(createStatusTable())
-.then(populateStatusTable())
-.then(done); 
+//createUserTable()
+//.then(createGoalTable())
+//.then(createStatusTable())
+//.then(populateStatusTable())
+//.then(done); 
+//.catch(reason => console.log(reason));  
 
-//createStatusTable()
-//  .then(populateStatusTable())
-//  .then(done());
-
-//populateStatusTable()
-//  .catch(reason => console.log(reason));  
-
+createNoteTable()
+.then(done)
+.catch(reason => console.log(reason));  

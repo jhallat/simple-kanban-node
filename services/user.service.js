@@ -60,14 +60,16 @@ function findUserByUsername(username) {
   return dynamodb.query(params).promise();
 }
 
-function getBearerTokenFromHeader(headers) {
+function getSubjectFromHeader(headers) {
   return new Promise((resolve, reject) => {
-    var tokenArray = headers.authorization.split(" ");
-    if (tokenArray.length !== 1) {
+    var bearerToken = headers.authorization.substring(7);
+    if (bearerToken.length === 0) {
+      console.log(`Token not found ${bearerToken}`);
       reject(new Error("Token not found"));
     } else {
-      jwt.verify(tokenArray[1], publicKey, (err, data) => {
+      jwt.verify(bearerToken, publicKey, (err, data) => {
         if (err) {
+          console.log(`[authenticationRouter::getBearerTokenFromHeader] ${JSON.stringify(err)}`);
           reject(err);
         } else {
           resolve(data.sub);
@@ -78,28 +80,49 @@ function getBearerTokenFromHeader(headers) {
 }
 
 
-function findUserByBearerToken(headers) {
-  
-  return new Promise((resolve, reject) => {
-    getBearerTokenFromHeader(headers).then(
-      (data) => {
-        findUserByUsername(data.sub, (err, data) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(null, data.userid);
-          }
-        })
-      },
-      (error) => {
+async function findUserByBearerToken(headers) {
+  return new Promise(async (resolve, reject) => {
+    var subject = await getSubjectFromHeader(headers)
+      .catch(err => {
+        console.log(`Error getting subject : ${JSON.stringify(error)}`);
         reject(error);
-      }
-    )
+      })
+
+      var data = await findUserByUsername(subject)
+          .catch((err) => {
+            console.log(`Error getting username : ${JSON.stringify(err)}`);
+            reject(err);
+      });
+      resolve(data.Items[0].userid.S) ; 
+
   })
 }
 
 async function addUser(user, callback) {
-  findUserByUsername(user.username, (err, data) => {
+
+  var params = {
+    TableName: "agile.user",
+    Item: {
+      userid: { S: userid },
+      username: { S: user.username },
+      password: { S: hash }
+    },
+    ConditionExpression: 'attribute_not_exists(username)'
+  };
+
+  dynamodb.putItem(params, (err, data) => {
+    if (err) {
+      callback(err, {});
+    } else {
+      callback(null, {
+        userid: userid,
+        username: user.username,
+        password: ""
+      });
+    }
+  });
+
+ /* findUserByUsername(user.username, (err, data) => {
     if (err) {
       if (err.code !== "ResourceNotFoundException") {
         console.error("Error ", JSON.stringify(err, null, 2));
@@ -118,7 +141,8 @@ async function addUser(user, callback) {
             userid: { S: userid },
             username: { S: user.username },
             password: { S: hash }
-          }
+          },
+          ConditionExpression: 'attribute_not_exists(username)'
         };
         dynamodb.putItem(params, (err, data) => {
           if (err) {
@@ -133,5 +157,5 @@ async function addUser(user, callback) {
         });
       }
     }
-  });
+  }); */
 }
